@@ -1,0 +1,110 @@
+> Design a clean, modern academic website for a College Science Club (HSC level, Bangladesh).
+> The site should look professional, trustworthy, and student-friendly — not flashy or childish.
+
+### Pages:
+
+Create a **multi-page website** with:
+
+* Home
+* About
+* Blog
+* Executive Committee
+* Events
+
+(Contact section should be in the footer, not a separate page.)
+
+---
+
+### Design style:
+
+* Dark theme
+* Deep blue background
+* Deep blue as primary color
+* Subtle green or cyan as accent
+* Minimal, academic, modern look
+* Slight glassmorphism, no neon, no gradients, no fancy effects
+
+---
+
+### Header:
+
+* Club name on the left
+* Navigation links: Home, About, Blog, Events, Executive
+* Clean horizontal menu, in Mobil phone view a beutiful 3 line for sidebar
+
+---
+
+### Footer:
+
+Include a dark footer with:
+
+* Club name
+* College name (placeholder)
+* Short contact section (email + simple message box)
+* Facebook link
+
+---
+
+### Home page:
+
+Include these sections in order:
+
+1. Hero section with club name and a science-themed tagline
+2. About the club (short intro with “Read more” link)
+3. Upcoming Events (3 cards)
+4. Latest Blogs (3 previews)
+5. Why join the Science Club (benefits for students)
+
+---
+
+### About page:
+
+* Who we are
+* Our mission
+* What we do
+
+---
+
+### Blog page:
+
+* List of blog posts
+* Each post should have a title, date, short description, and image placeholder
+
+---
+
+### Executive Committee page:
+
+Two sections:
+
+1. **Current Executive Committee** (President, Secretary, Treasurer, Members)
+2. **Past Executive Committees** listed by session (e.g. 2023–24, 2022–23)
+
+Each person contains a card, contains:
+* Title
+* Name
+
+Past executive committees by default hide, there will be dropdown menu like faq, when user press the 2023-24 line, 2023-24 cimittee will show
+
+---
+
+### Events page:
+
+Two sections:
+
+* Upcoming Events
+* Past Events
+
+Each event should have:
+
+* Title
+* Date
+* Short description
+* Image placeholder
+
+---
+
+### Output:
+
+Generate a **responsive design** suitable for desktop and mobile, and allow **HTML + CSS export**.
+
+

@@ -1,0 +1,51 @@
+/* Moderator Registration Styles */
+.auth-toggle {
+    margin-top: 20px;
+    text-align: center;
+    color: var(--admin-muted);
+    font-size: 0.9rem;
+}
+
+.auth-toggle a {
+    color: var(--admin-accent);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.auth-toggle a:hover {
+    color: white;
+}
+
+/* Hidden state for toggling forms */
+.auth-form.hidden {
+    display: none;
+    animation: fadeOut 0.3s;
+}
+
+.auth-form {
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}

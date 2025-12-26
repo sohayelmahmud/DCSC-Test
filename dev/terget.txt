@@ -1,0 +1,46 @@
+# Now
+/
+├─ home
+├─ about
+│   ├─ mission
+│   └─ constitution
+├─ blog
+├─ executive-committee
+├─ events
+│   ├─ upcoming
+│   └─ past
+└─ contact
+
+
+
+
+
+# Plan
+/
+├─ home
+├─ about
+│   ├─ mission
+│   └─ constitution
+├─ executive-committee
+├─ wings
+│   ├─ physics
+│   ├─ chemistry
+│   ├─ biology
+│   └─ ict
+├─ events
+│   ├─ upcoming
+│   └─ past
+├─ projects
+├─ achievements
+├─ gallery
+├─ resources
+├─ blog
+├─ membership
+├─ notices
+└─ contact
+
+
+
+
+
+
