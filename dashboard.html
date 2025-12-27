@@ -195,51 +195,116 @@
     <script src="js/auth.js"></script>
     <script src="js/admin-logic.js"></script>
     <script>
-        // ১. সেশন ভেরিফিকেশন (Supabase এর মাধ্যমে)
+        // ১. সেশন ভেরিফিকেশন (Supabase)
         async function verifySession() {
             if (typeof AUTH === 'undefined') {
                 setTimeout(verifySession, 100);
                 return;
             }
-
             const session = await AUTH.checkSession();
             if (!session) {
                 window.location.href = 'login.html';
             } else {
-                // ইউজারের ইমেইল ড্যাশবোর্ডে দেখানো
                 document.getElementById('adminName').textContent = session.user.email.split('@')[0];
-
-                // ড্যাশবোর্ডের প্রাথমিক ডাটা লোড করা
                 showSection('dashboard');
             }
         }
-
-        // অ্যাপ রান করা
         verifySession();
 
-        // ২. ভিউ সুইচিং ফাংশন (Supabase Data Fetching সহ)
+        // ২. সেকশন সুইচিং এবং ডাটা লোড
         async function showSection(sectionId) {
-            // UI Update
             document.querySelectorAll('.admin-view').forEach(view => view.classList.add('hidden'));
             document.getElementById(`view-${sectionId}`).classList.remove('hidden');
 
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            document.getElementById(`nav-${sectionId}`).classList.add('active');
+            const activeNav = document.getElementById(`nav-${sectionId}`);
+            if (activeNav) activeNav.classList.add('active');
+
             document.getElementById('page-title').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
 
-            // Supabase থেকে ডাটা লোড করা (admin-logic.js এর ফাংশনগুলো ব্যবহার করে)
-            if (sectionId === 'members') loadMembersFromSupabase();
-            if (sectionId === 'events') loadEventsFromSupabase();
-            // ... অন্যান্য সেকশন
+            // ডাটাবেস থেকে ডাটা আনা
+            if (sectionId === 'dashboard') CMS.updateDashboardStats();
+            if (sectionId === 'members') renderTable('members');
+            if (sectionId === 'events') renderTable('events');
+            if (sectionId === 'blogs') renderTable('blogs');
+            if (sectionId === 'admins') CMS.loadModerators();
         }
 
-        // ৩. লগআউট হ্যান্ডলার
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-            if (confirm("Are you sure you want to logout?")) {
-                await clientDB.auth.signOut();
-                window.location.href = 'login.html';
+        // ৩. মেম্বার/ইভেন্ট টেবিল রেন্ডার করা
+        async function renderTable(type) {
+            const list = document.getElementById(`table-${type}`);
+            list.innerHTML = '<tr><td colspan="3">Loading data from cloud...</td></tr>';
+
+            const items = await CMS.get(type);
+
+            if (items.length === 0) {
+                list.innerHTML = `<tr><td colspan="3">No ${type} found.</td></tr>`;
+                return;
+            }
+
+            list.innerHTML = items.map(item => `
+            <tr>
+                <td>${item.name || item.title}</td>
+                <td>${item.role || new Date(item.date).toLocaleDateString()}</td>
+                <td>
+                    <button class="btn-action edit" onclick='openModal("${type}", ${JSON.stringify(item)})'>Edit</button>
+                    <button class="btn-action delete" onclick="CMS.delete('${type}', '${item.id}')">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+        }
+
+        // ৪. মোডাল ওপেন লজিক (Add/Edit)
+        const modal = document.getElementById('cmsModal');
+        const formFields = document.getElementById('form-fields');
+        const editIdInput = document.getElementById('edit-id');
+        const currentTypeInput = document.getElementById('current-type');
+
+        function openModal(type, item = null) {
+            modal.classList.remove('hidden');
+            currentTypeInput.value = type;
+            editIdInput.value = item ? item.id : '';
+            document.getElementById('modalTitle').textContent = item ? 'Edit ' + type : 'Add New ' + type;
+            formFields.innerHTML = '';
+
+            if (type === 'members') {
+                createField('text', 'name', 'Full Name', item ? item.name : '', true);
+                createField('text', 'role', 'Role', item ? item.role : '');
+                createField('number', 'hierarchy', 'Order (1, 2, 3)', item ? item.hierarchy : '99');
+            } else {
+                createField('text', 'title', 'Title', item ? item.title : '', true);
+                createField('date', 'date', 'Date', item ? item.date : '');
+            }
+        }
+
+        function createField(inputType, name, label, value, required = false) {
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.innerHTML = `<label>${label}</label>
+            <input type="${inputType}" name="${name}" value="${value}" class="modal-input" ${required ? 'required' : ''}>`;
+            formFields.appendChild(div);
+        }
+
+        function closeModal() { modal.classList.add('hidden'); }
+
+        // ৫. ফর্ম সেভ লজিক (Supabase Integration)
+        document.getElementById('cmsForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const type = currentTypeInput.value;
+            const id = editIdInput.value;
+            const formData = id ? { id } : {};
+
+            new FormData(this).forEach((value, key) => { formData[key] = value; });
+
+            const success = await CMS.save(type, formData);
+            if (success) {
+                closeModal();
+                showSection(type);
             }
         });
+
+        // ৬. লগআউট
+        document.getElementById('logoutBtn').addEventListener('click', () => CMS.logout());
     </script>
 
 </body>
