@@ -98,20 +98,19 @@
         }
 
         // ২. লগইন হ্যান্ডলার (Supabase Auth)
+        // HTML এর ভেতরে script সেকশনে
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
             try {
-                await AUTH.login(email, password);
-                // সাকসেস হলে AUTH.login ফাংশনটিই রিডাইরেক্ট করে দেবে
+                await AUTH.login(email, password); // এখানে AUTH বড় হাতের কি না চেক করো
             } catch (err) {
                 errorMessage.textContent = "Login Failed: " + err.message;
                 errorMessage.style.display = 'block';
             }
         });
-
         // ৩. রেজিস্ট্রেশন হ্যান্ডলার (Supabase Sign-Up)
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();

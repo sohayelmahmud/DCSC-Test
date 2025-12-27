@@ -47,18 +47,14 @@
 
     <script src="js/auth.js"></script>
     <script>
-        const loginForm = document.getElementById('loginForm');
-        const errorMessage = document.getElementById('errorMessage');
-
-        loginForm.addEventListener('submit', async (e) => { // async added here
+        // HTML এর ভেতরে script সেকশনে
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            // AUTH.login call with await
             try {
-                await AUTH.login(email, password);
-                // Redirection logic is handled inside AUTH.login (auth.js)
+                await AUTH.login(email, password); // এখানে AUTH বড় হাতের কি না চেক করো
             } catch (err) {
                 errorMessage.textContent = "Login Failed: " + err.message;
                 errorMessage.style.display = 'block';
