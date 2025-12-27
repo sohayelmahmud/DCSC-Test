@@ -21,13 +21,20 @@ const AUTH = {
         }
     },
 
+    // auth.js এর ভেতর
     checkSession: async () => {
         try {
             const { data: { session }, error } = await clientDB.auth.getSession();
             if (error) throw error;
+
+            const isLoginPage = window.location.pathname.includes('login.html') || window.location.pathname.includes('moderator.html');
+
+            // যদি সেশন না থাকে এবং ইউজার লগইন পেজেও না থাকে, তবেই লগইন পেজে পাঠাও
+            if (!session && !isLoginPage) {
+                window.location.href = 'login.html';
+            }
             return session;
         } catch (err) {
-            console.error("Session Error:", err);
             return null;
         }
     }

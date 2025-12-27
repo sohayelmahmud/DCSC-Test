@@ -195,282 +195,51 @@
     <script src="js/auth.js"></script>
     <script src="js/admin-logic.js"></script>
     <script>
-        // Check Auth using the same key as auth.js
-        const session = JSON.parse(localStorage.getItem('dcsc_auth_session'));
+        // ১. সেশন ভেরিফিকেশন (Supabase এর মাধ্যমে)
+        async function verifySession() {
+            if (typeof AUTH === 'undefined') {
+                setTimeout(verifySession, 100);
+                return;
+            }
 
-        if (!session) {
-            window.location.href = 'login.html';
-        } else {
-            document.getElementById('adminName').textContent = session.user || 'Admin';
-            document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+            const session = await AUTH.checkSession();
+            if (!session) {
+                window.location.href = 'login.html';
+            } else {
+                // ইউজারের ইমেইল ড্যাশবোর্ডে দেখানো
+                document.getElementById('adminName').textContent = session.user.email.split('@')[0];
 
-            // Hide Admin Users link if not Super Admin
-            if (session.role !== 'admin') {
-                const adminLink = document.getElementById('nav-admins');
-                if (adminLink) {
-                    adminLink.parentNode.style.display = 'none';
-                }
+                // ড্যাশবোর্ডের প্রাথমিক ডাটা লোড করা
+                showSection('dashboard');
             }
         }
 
-        // --- View Switching ---
-        function showSection(sectionId) {
-            // Hide all views
-            document.querySelectorAll('.admin-view').forEach(view => {
-                view.classList.add('hidden');
-                view.classList.remove('active');
-            });
-            // Show selected view
-            document.getElementById(`view-${sectionId}`).classList.remove('hidden');
-            document.getElementById(`view-${sectionId}`).classList.add('active');
+        // অ্যাপ রান করা
+        verifySession();
 
-            // Update Nav
+        // ২. ভিউ সুইচিং ফাংশন (Supabase Data Fetching সহ)
+        async function showSection(sectionId) {
+            // UI Update
+            document.querySelectorAll('.admin-view').forEach(view => view.classList.add('hidden'));
+            document.getElementById(`view-${sectionId}`).classList.remove('hidden');
+
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.getElementById(`nav-${sectionId}`).classList.add('active');
-
-            // Update Header
             document.getElementById('page-title').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
 
-            // Load data based on section
-            if (sectionId === 'dashboard') CMS.updateDashboardStats();
-            if (sectionId === 'members') loadMembers();
-            if (sectionId === 'blogs') loadBlogs();
-            if (sectionId === 'events') loadEvents();
-            if (sectionId === 'admins') CMS.loadModerators(); // Load mods
+            // Supabase থেকে ডাটা লোড করা (admin-logic.js এর ফাংশনগুলো ব্যবহার করে)
+            if (sectionId === 'members') loadMembersFromSupabase();
+            if (sectionId === 'events') loadEventsFromSupabase();
+            // ... অন্যান্য সেকশন
         }
 
-        // --- Loaders ---
-        function loadMembers() {
-            const list = document.getElementById('table-members');
-            const items = CMS.get(STORAGE_KEYS.MEMBERS);
-            list.innerHTML = items.map(item => `
-                <tr>
-                    <td>${item.name}</td>
-                    <td>${item.role || 'Member'}</td>
-                    <td>
-                        <button class="btn-action edit" onclick='editItem("members", ${JSON.stringify(item)})'>Edit</button>
-                        <button class="btn-action delete" onclick="deleteItem('${STORAGE_KEYS.MEMBERS}', '${item.id}', 'members')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function loadBlogs() {
-            const list = document.getElementById('table-blogs');
-            const items = CMS.get(STORAGE_KEYS.BLOGS);
-            list.innerHTML = items.map(item => `
-                <tr>
-                    <td>${item.title}</td>
-                    <td>${new Date(item.date).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn-action edit" onclick='editItem("blogs", ${JSON.stringify(item)})'>Edit</button>
-                        <button class="btn-action delete" onclick="deleteItem('${STORAGE_KEYS.BLOGS}', '${item.id}', 'blogs')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function loadEvents() {
-            const list = document.getElementById('table-events');
-            const items = CMS.get(STORAGE_KEYS.EVENTS);
-            list.innerHTML = items.map(item => `
-                <tr>
-                    <td>${item.title}</td>
-                    <td>${new Date(item.date).toLocaleDateString()}</td>
-                    <td>
-                        <button class="btn-action edit" onclick='editItem("events", ${JSON.stringify(item)})'>Edit</button>
-                        <button class="btn-action delete" onclick="deleteItem('${STORAGE_KEYS.EVENTS}', '${item.id}', 'events')">Delete</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // --- CRUD Interface Helpers ---
-        function deleteItem(key, id, type) {
-            if (confirm('Are you sure you want to delete this item?')) {
-                CMS.delete(key, id);
-                if (type === 'members') loadMembers();
-                else if (type === 'blogs') loadBlogs();
-                else if (type === 'events') loadEvents();
-                CMS.updateDashboardStats(); // Refresh stats bg
+        // ৩. লগআউট হ্যান্ডলার
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            if (confirm("Are you sure you want to logout?")) {
+                await clientDB.auth.signOut();
+                window.location.href = 'login.html';
             }
-        }
-
-        // --- Modal Logic ---
-        const modal = document.getElementById('cmsModal');
-        const formFields = document.getElementById('form-fields');
-        const modalTitle = document.getElementById('modalTitle');
-        const currentTypeInput = document.getElementById('current-type');
-        const editIdInput = document.getElementById('edit-id');
-
-        function openModal(type, item = null) {
-            modal.classList.remove('hidden');
-            currentTypeInput.value = type;
-            editIdInput.value = item ? item.id : '';
-            modalTitle.textContent = item ? 'Edit ' + type : 'Add New ' + type;
-            formFields.innerHTML = ''; // Clear previous
-
-            // Generate Fields based on type
-            if (type === 'members') {
-                createField('text', 'name', 'Full Name (Required)', item ? item.name : '', true);
-                createField('text', 'role', 'Position/Role (Optional)', item ? item.role : '');
-
-                // Batch Dropdown
-                const batchOptions = ['2025-26(Current)', '2024-25', '2023-24', '2022-23'];
-                createSelect('batch', 'Batch (Required)', batchOptions, item ? item.batch : '2025-26(Current)');
-
-                createField('number', 'hierarchy', 'Sort Order (1 = Top)', item ? item.hierarchy : '99');
-
-                // File Input for Image
-                createFileInput('image', 'Profile Image (Optional)');
-                if (item && item.image) {
-                    const imgPreview = document.createElement('div');
-                    imgPreview.innerHTML = `<p style="font-size:0.8rem; margin-top:5px;">Current Image:</p><img src="${item.image}" style="max-height:50px; border-radius:4px;">`;
-                    formFields.appendChild(imgPreview);
-                }
-
-            } else if (type === 'blogs') {
-                createField('text', 'title', 'Blog Title', item ? item.title : '');
-                createField('date', 'date', 'Date', item ? item.date : '');
-                createField('textarea', 'excerpt', 'Short Excerpt', item ? item.excerpt : '');
-                createField('textarea', 'content', 'Full Content', item ? item.content : '');
-            } else if (type === 'events') {
-                createField('text', 'title', 'Event Title', item ? item.title : '');
-                createField('date', 'date', 'Event Date', item ? item.date : '');
-                createField('textarea', 'description', 'Description', item ? item.description : '');
-            }
-        }
-
-        function createField(inputType, name, label, value, required = false) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `<label>${label}</label>`;
-
-            let input;
-            if (inputType === 'textarea') {
-                input = document.createElement('textarea');
-                input.rows = 4;
-            } else {
-                input = document.createElement('input');
-                input.type = inputType;
-                input.className = 'modal-input';
-            }
-            input.name = name;
-            input.value = value || '';
-            if (required) input.required = true;
-
-            div.appendChild(input);
-            formFields.appendChild(div);
-        }
-
-        function createSelect(name, label, options, selectedValue) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `<label>${label}</label>`;
-
-            const select = document.createElement('select');
-            select.name = name;
-            select.className = 'modal-input';
-
-            options.forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt;
-                option.textContent = opt;
-                if (opt === selectedValue) option.selected = true;
-                select.appendChild(option);
-            });
-
-            div.appendChild(select);
-            formFields.appendChild(div);
-        }
-
-        function createFileInput(name, label) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `<label>${label}</label>`;
-
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.name = name;
-            input.className = 'modal-input';
-            input.accept = 'image/*';
-
-            div.appendChild(input);
-            formFields.appendChild(div);
-        }
-
-        function closeModal() {
-            modal.classList.add('hidden');
-        }
-
-        function editItem(type, id) {
-            const key = type === 'members' ? STORAGE_KEYS.MEMBERS :
-                type === 'blogs' ? STORAGE_KEYS.BLOGS : STORAGE_KEYS.EVENTS;
-            const items = CMS.get(key);
-            const item = items.find(i => i.id == id);
-            if (item) {
-                openModal(type, item);
-            }
-        }
-
-        // --- Handle Form Submit ---
-        document.getElementById('cmsForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const type = currentTypeInput.value;
-            const id = editIdInput.value;
-
-            // Gather data
-            const data = { id: id };
-            const inputs = formFields.querySelectorAll('input, textarea, select');
-
-            // Helper to get file base64
-            const filePromises = [];
-
-            inputs.forEach(input => {
-                if (input.type === 'file') {
-                    if (input.files.length > 0) {
-                        const file = input.files[0];
-                        const reader = new FileReader();
-                        const promise = new Promise((resolve) => {
-                            reader.onload = (e) => {
-                                data[input.name] = e.target.result; // Base64 string
-                                resolve();
-                            };
-                            reader.readAsDataURL(file);
-                        });
-                        filePromises.push(promise);
-                    } else if (id) {
-                        // If editing and no new file, keep existing (need to fetch existing first)
-                        const key = type === 'members' ? STORAGE_KEYS.MEMBERS :
-                            type === 'blogs' ? STORAGE_KEYS.BLOGS : STORAGE_KEYS.EVENTS;
-                        const existing = CMS.get(key).find(i => i.id == id);
-                        if (existing && existing[input.name]) {
-                            data[input.name] = existing[input.name];
-                        }
-                    }
-                } else {
-                    data[input.name] = input.value;
-                }
-            });
-
-            // Wait for file reading if any
-            Promise.all(filePromises).then(() => {
-                const key = type === 'members' ? STORAGE_KEYS.MEMBERS :
-                    type === 'blogs' ? STORAGE_KEYS.BLOGS : STORAGE_KEYS.EVENTS;
-
-                CMS.save(key, data);
-                closeModal();
-                renderTable(type);
-                CMS.updateDashboardStats();
-            });
         });
-
-        // Close modal when clicking outside
-        window.onclick = function (event) {
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
     </script>
 
 </body>
