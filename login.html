@@ -47,24 +47,20 @@
 
     <script src="js/auth.js"></script>
     <script>
-        // Check if already logged in
-        if (Auth.checkAuth()) {
-            window.location.href = 'dashboard.html';
-        }
-
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
 
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => { // async added here
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            const result = Auth.login(email, password);
-            if (result.success) {
-                window.location.href = 'dashboard.html';
-            } else {
-                errorMessage.textContent = result.message;
+            // AUTH.login call with await
+            try {
+                await AUTH.login(email, password);
+                // Redirection logic is handled inside AUTH.login (auth.js)
+            } catch (err) {
+                errorMessage.textContent = "Login Failed: " + err.message;
                 errorMessage.style.display = 'block';
             }
         });

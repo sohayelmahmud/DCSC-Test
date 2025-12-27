@@ -73,15 +73,19 @@
 
     <script src="js/auth.js"></script>
     <script>
-        // Check if already logged in
-        if (Auth.checkAuth()) {
-            window.location.href = 'dashboard.html';
-        }
+        // ১. পেজ লোড হওয়ার পর সেশন চেক করা
+        document.addEventListener('DOMContentLoaded', async () => {
+            const session = await AUTH.checkSession();
+            if (session) {
+                window.location.href = 'dashboard.html';
+            }
+        });
 
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
 
+        // Form toggle logic
         function toggleAuth(mode) {
             errorMessage.style.display = 'none';
             if (mode === 'register') {
@@ -93,32 +97,44 @@
             }
         }
 
-        loginForm.addEventListener('submit', (e) => {
+        // ২. লগইন হ্যান্ডলার (Supabase Auth)
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
-            const result = Auth.login(email, password);
-            if (result.success) {
-                window.location.href = 'dashboard.html';
-            } else {
-                errorMessage.textContent = result.message;
+            try {
+                await AUTH.login(email, password);
+                // সাকসেস হলে AUTH.login ফাংশনটিই রিডাইরেক্ট করে দেবে
+            } catch (err) {
+                errorMessage.textContent = "Login Failed: " + err.message;
                 errorMessage.style.display = 'block';
             }
         });
 
-        registerForm.addEventListener('submit', (e) => {
+        // ৩. রেজিস্ট্রেশন হ্যান্ডলার (Supabase Sign-Up)
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('regName').value;
             const email = document.getElementById('regEmail').value;
             const password = document.getElementById('regPassword').value;
 
-            const result = Auth.register(name, email, password);
-            if (result.success) {
-                alert(result.message);
+            try {
+                // Supabase এ নতুন ইউজার তৈরি
+                const { data, error } = await supabaseDB.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: { full_name: name } // ইউজার মেটাডেটা হিসেবে নাম সেভ করা
+                    }
+                });
+
+                if (error) throw error;
+
+                alert("Registration successful! Please check your email for confirmation (if enabled) and then login.");
                 toggleAuth('login');
-            } else {
-                errorMessage.textContent = result.message;
+            } catch (err) {
+                errorMessage.textContent = "Registration Failed: " + err.message;
                 errorMessage.style.display = 'block';
             }
         });

@@ -4,9 +4,10 @@
  */
 
 // 1. Configuration
+// Variable name change to avoid conflict with library
 const SUPABASE_URL = 'https://kspvcganucjolmrdpudb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-C1y_mIZSLQbRvLe0ZUxgA_EOBO7DL_';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseDB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const AUTH = {
     /**
