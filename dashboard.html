@@ -288,18 +288,32 @@
         function closeModal() { modal.classList.add('hidden'); }
 
         // ৫. ফর্ম সেভ লজিক (Supabase Integration)
+        // ফর্ম সাবমিট হ্যান্ডলার (Save Changes বাটনটি এটি ট্রিগার করে)
         document.getElementById('cmsForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const type = currentTypeInput.value;
-            const id = editIdInput.value;
-            const formData = id ? { id } : {};
+            e.preventDefault(); // পেজ রিফ্রেশ বন্ধ করা
 
-            new FormData(this).forEach((value, key) => { formData[key] = value; });
+            const type = document.getElementById('current-type').value; // 'members'
+            const id = document.getElementById('edit-id').value;
 
+            // ইনপুট থেকে ডাটা সংগ্রহ করা
+            const formData = {};
+            if (id) formData.id = id;
+
+            const inputs = this.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                if (input.name) {
+                    formData[input.name] = input.value;
+                }
+            });
+
+            console.log("Saving data:", formData); // ডিবাগিং এর জন্য
+
+            // Supabase এ সেভ করা (CMS.save ফাংশন কল করা)
             const success = await CMS.save(type, formData);
+
             if (success) {
                 closeModal();
-                showSection(type);
+                showSection(type); // লিস্ট আপডেট করা
             }
         });
 
