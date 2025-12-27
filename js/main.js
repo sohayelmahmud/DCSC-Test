@@ -1,8 +1,17 @@
+/**
+ * Main Logic for Dhaka College Science Club
+ * Handles Mobile Menu, Accordions, and Supabase Data Sync.
+ */
+
+// 1. Supabase Configuration (Consistent with your other files)
+const SUPABASE_URL = 'https://kspvcganucjolmrdpudb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-C1y_mIZSLQbRvLe0ZUxgA_EOBO7DL_';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Mobile Menu Toggle
+    // --- Mobile Menu Toggle ---
     const hamburger = document.querySelector('.hamburger');
     const navLinks = document.querySelector('.nav-links');
-    const closeMenu = document.querySelector('.close-menu');
 
     if (hamburger && navLinks) {
         hamburger.addEventListener('click', () => {
@@ -11,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Accordion Logic
+    // --- Accordion Logic ---
     const accordionHeaders = document.querySelectorAll('.accordion-header');
 
     accordionHeaders.forEach(header => {
@@ -32,18 +41,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- Frontend Data Sync Helper ---
+// --- Frontend Data Sync Helper (Async Version) ---
 /**
- * Fetches CMS data from localStorage.
+ * Fetches CMS data from Supabase Cloud Database.
  * @param {string} type - 'members', 'blogs', 'events'
- * @returns {Array} - Array of objects
+ * @returns {Promise<Array>} - Promise resolving to an array of objects
  */
-function getCMSData(type) {
-    const STORAGE_KEYS = {
-        MEMBERS: 'dcsc_members',
-        BLOGS: 'dcsc_blogs',
-        EVENTS: 'dcsc_events'
-    };
-    const key = STORAGE_KEYS[type.toUpperCase()];
-    return key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
+async function getCMSData(type) {
+    try {
+        const { data, error } = await supabaseClient
+            .from(type.toLowerCase()) // Automatically matches table name
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.error(`Error fetching ${type}:`, err.message);
+        return [];
+    }
 }

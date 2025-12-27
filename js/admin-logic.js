@@ -1,155 +1,163 @@
 /**
  * Admin Logic for Dhaka College Science Club CMS
- * Handles CRUD operations using localStorage.
+ * Handles Cloud CRUD operations using Supabase.
  */
 
-const STORAGE_KEYS = {
-    MEMBERS: 'dcsc_members',
-    BLOGS: 'dcsc_blogs',
-    EVENTS: 'dcsc_events'
-};
-
-// Initial Data Seeding (Optional - helpful for first run)
-function seedData() {
-    if (!localStorage.getItem(STORAGE_KEYS.MEMBERS)) {
-        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.BLOGS)) {
-        localStorage.setItem(STORAGE_KEYS.BLOGS, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.EVENTS)) {
-        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify([]));
-    }
-}
+// 1. Supabase Configuration
+const SUPABASE_URL = 'https://kspvcganucjolmrdpudb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-C1y_mIZSLQbRvLe0ZUxgA_EOBO7DL_';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CMS = {
-    // --- Generic Helpers ---
-    get: (key) => {
-        return JSON.parse(localStorage.getItem(key) || '[]');
-    },
+    // --- Generic Helpers for Database Operations ---
 
-    save: (key, data) => {
-        const items = CMS.get(key);
-        // If data has an ID, update existing. Else add new.
-        if (data.id) {
-            const index = items.findIndex(item => item.id == data.id);
-            if (index !== -1) {
-                items[index] = data;
-            } else {
-                items.push(data); // Fallback
-            }
-        } else {
-            data.id = Date.now().toString(); // Simple ID generation
-            items.push(data);
+    /**
+     * Fetch all records from a specific table
+     * @param {string} table - Name of the database table
+     */
+    get: async (table) => {
+        try {
+            const { data, error } = await supabase
+                .from(table)
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (err) {
+            console.error(`Error fetching ${table}:`, err.message);
+            return [];
         }
-        localStorage.setItem(key, JSON.stringify(items));
-        return true;
     },
 
-    delete: (key, id) => {
-        let items = CMS.get(key);
-        items = items.filter(item => item.id != id);
-        localStorage.setItem(key, JSON.stringify(items));
+    /**
+     * Create or Update a record in a table
+     * @param {string} table - Name of the database table
+     * @param {Object} formData - Data object to be saved
+     */
+    save: async (table, formData) => {
+        try {
+            let result;
+            if (formData.id) {
+                // If ID exists, perform an Update operation
+                result = await supabase
+                    .from(table)
+                    .update(formData)
+                    .eq('id', formData.id);
+            } else {
+                // If no ID, perform an Insert operation
+                result = await supabase
+                    .from(table)
+                    .insert([formData]);
+            }
+
+            if (result.error) throw result.error;
+            alert("Success! Data synchronized with cloud database.");
+            return true;
+        } catch (err) {
+            alert("Operation failed: " + err.message);
+            return false;
+        }
     },
 
-    // --- Stats ---
-    getStats: () => {
-        return {
-            events: CMS.get(STORAGE_KEYS.EVENTS).length
-        };
+    /**
+     * Delete a record from a table
+     * @param {string} table - Name of the database table
+     * @param {string|number} id - Unique ID of the record
+     */
+    delete: async (table, id) => {
+        if (!confirm('Are you sure you want to delete this record permanently?')) return;
+        try {
+            const { error } = await supabase
+                .from(table)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            alert("Record deleted successfully.");
+            location.reload(); // Refresh to update the UI
+        } catch (err) {
+            alert("Delete failed: " + err.message);
+        }
     },
 
-    updateDashboardStats: () => {
-        const stats = CMS.getStats();
-        // Ensure these elements exist in dashboard.html
-        const eventCount = document.getElementById('stat-events');
+    // --- Dashboard Analytics ---
+    updateDashboardStats: async () => {
+        const events = await CMS.get('events');
+        const blogs = await CMS.get('blogs');
+        const members = await CMS.get('members');
 
-        if (eventCount) eventCount.textContent = stats.events;
+        const eventCountEl = document.getElementById('stat-events');
+        const blogCountEl = document.getElementById('stat-blogs');
+        const memberCountEl = document.getElementById('stat-members');
+
+        if (eventCountEl) eventCountEl.textContent = events.length;
+        if (blogCountEl) blogCountEl.textContent = blogs.length;
+        if (memberCountEl) memberCountEl.textContent = members.length;
     },
 
-    logout: () => {
-        localStorage.removeItem('dcsc_auth_session');
-        window.location.href = 'login.html';
-    },
-
-    // --- Moderator Management ---
-    loadModerators: () => {
-        const pending = JSON.parse(localStorage.getItem('pending_mods') || '[]');
-        const approved = JSON.parse(localStorage.getItem('approved_mods') || '[]');
+    // --- Moderator Management Logic ---
+    loadModerators: async () => {
+        const pending = await CMS.get('pending_mods');
+        const approved = await CMS.get('approved_mods');
 
         const pendingTable = document.getElementById('pendingModsTable');
         const approvedTable = document.getElementById('approvedModsTable');
 
         if (pendingTable) {
-            pendingTable.innerHTML = pending.map(mod => `
+            pendingTable.innerHTML = pending.length ? pending.map(mod => `
                 <tr>
                     <td>${mod.name}</td>
                     <td>${mod.email}</td>
                     <td>
-                        <button class="btn-action edit" onclick="CMS.approveMod('${mod.email}')">Approve</button>
-                        <button class="btn-action delete" onclick="CMS.rejectMod('${mod.email}')">Reject</button>
+                        <button class="btn-action edit" onclick="CMS.approveMod('${mod.id}', '${mod.email}', '${mod.name}')">Approve</button>
+                        <button class="btn-action delete" onclick="CMS.delete('pending_mods', '${mod.id}')">Reject</button>
                     </td>
                 </tr>
-            `).join('');
-            if (pending.length === 0) pendingTable.innerHTML = '<tr><td colspan="3">No pending requests.</td></tr>';
+            `).join('') : '<tr><td colspan="3">No pending moderator requests.</td></tr>';
         }
 
         if (approvedTable) {
-            approvedTable.innerHTML = approved.map(mod => `
+            approvedTable.innerHTML = approved.length ? approved.map(mod => `
                 <tr>
                     <td>${mod.name}</td>
                     <td>${mod.email}</td>
                     <td>
-                        <button class="btn-action delete" onclick="CMS.removeMod('${mod.email}')">Remove</button>
+                        <button class="btn-action delete" onclick="CMS.delete('approved_mods', '${mod.id}')">Remove Access</button>
                     </td>
                 </tr>
-            `).join('');
-            if (approved.length === 0) approvedTable.innerHTML = '<tr><td colspan="3">No approved moderators.</td></tr>';
+            `).join('') : '<tr><td colspan="3">No approved moderators listed.</td></tr>';
         }
     },
 
-    approveMod: (email) => {
-        const pending = JSON.parse(localStorage.getItem('pending_mods') || '[]');
-        const approved = JSON.parse(localStorage.getItem('approved_mods') || '[]');
-
-        const modIndex = pending.findIndex(m => m.email === email);
-        if (modIndex > -1) {
-            const mod = pending.splice(modIndex, 1)[0];
-            approved.push(mod);
-            localStorage.setItem('pending_mods', JSON.stringify(pending));
-            localStorage.setItem('approved_mods', JSON.stringify(approved));
-            alert(`Approved ${mod.name}`);
+    /**
+     * Approve a moderator by moving data from pending to approved table
+     */
+    approveMod: async (id, email, name) => {
+        const success = await CMS.save('approved_mods', { email, name });
+        if (success) {
+            // Delete from pending table after successful approval
+            await supabase.from('pending_mods').delete().eq('id', id);
             CMS.loadModerators();
         }
     },
 
-    rejectMod: (email) => {
-        if (!confirm('Are you sure you want to reject this request?')) return;
-        let pending = JSON.parse(localStorage.getItem('pending_mods') || '[]');
-        pending = pending.filter(m => m.email !== email);
-        localStorage.setItem('pending_mods', JSON.stringify(pending));
-        CMS.loadModerators();
-    },
-
-    removeMod: (email) => {
-        if (!confirm('Are you sure you want to remove this moderator?')) return;
-        let approved = JSON.parse(localStorage.getItem('approved_mods') || '[]');
-        approved = approved.filter(m => m.email !== email);
-        localStorage.setItem('approved_mods', JSON.stringify(approved));
-        CMS.loadModerators();
+    /**
+     * Handle user logout and session cleanup
+     */
+    logout: () => {
+        localStorage.removeItem('dcsc_auth_session');
+        window.location.href = 'login.html';
     }
 };
 
-// --- Initialization ---
+// --- Execution & Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
-    seedData();
+    // Initial UI synchronization
     CMS.updateDashboardStats();
-});
 
-// --- Public Function for Frontend Sync (export if using modules, otherwise global) ---
-// This function can be copied to main.js or just referenced if this script is loaded.
-function getCMSData(type) {
-    // type: 'members', 'blogs', 'events'
-    const key = STORAGE_KEYS[type.toUpperCase()];
-    return key ? CMS.get(key) : [];
-}
+    // Check if current page is the Moderator Management page
+    if (document.getElementById('pendingModsTable')) {
+        CMS.loadModerators();
+    }
+});
