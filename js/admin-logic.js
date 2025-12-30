@@ -34,14 +34,24 @@ const CMS = {
      */
     save: async (table, formData) => {
         try {
+            console.log('CMS.save called with:', { table, formData });
+
             // Remove empty ID if it exists to let Supabase generate one
             if (!formData.id) delete formData.id;
 
+            console.log('Attempting to save to Supabase...');
             const { data, error } = await clientDB
                 .from(table)
                 .upsert([formData]); // upsert handles both insert and update
 
-            if (error) throw error;
+            console.log('Supabase response:', { data, error });
+
+            if (error) {
+                console.error('Supabase error details:', error);
+                throw error;
+            }
+
+            console.log('Save successful!');
             alert("Success! Cloud database updated.");
 
             // Trigger real-time update by calling page-specific reload
@@ -49,7 +59,13 @@ const CMS = {
 
             return true;
         } catch (err) {
-            console.error("Save error:", err.message);
+            console.error("Save error:", err);
+            console.error("Error details:", {
+                message: err.message,
+                details: err.details,
+                hint: err.hint,
+                code: err.code
+            });
             alert("Operation failed: " + err.message);
             return false;
         }

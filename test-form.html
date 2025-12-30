@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Test - DCSC</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>DCSC Form Test</h1>
+    <div id="message"></div>
+
+    <form id="testForm">
+        <h3>Add Member Test</h3>
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <input type="text" id="role" name="role" required>
+        </div>
+        <div class="form-group">
+            <label for="hierarchy">Order:</label>
+            <input type="number" id="hierarchy" name="hierarchy" value="99">
+        </div>
+        <div class="form-group">
+            <label for="batch">Batch:</label>
+            <input type="text" id="batch" name="batch" value="2025-26(Current)">
+        </div>
+        <div class="form-group">
+            <label for="roll">Roll:</label>
+            <input type="text" id="roll" name="roll">
+        </div>
+        <div class="form-group">
+            <label for="image_url">Image URL:</label>
+            <input type="text" id="image_url" name="image_url">
+        </div>
+        <button type="submit">Save Member</button>
+    </form>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://kspvcganucjolmrdpudb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_-C1y_mIZSLQbRvLe0ZUxgA_EOBO7DL_';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Form submission handler
+        document.getElementById('testForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '<p>Saving...</p>';
+
+            try {
+                // Collect form data
+                const formData = {};
+                const inputs = this.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (input.name && input.value) {
+                        formData[input.name] = input.value;
+                    }
+                });
+
+                console.log('Form data:', formData);
+
+                // Save to Supabase
+                const { data, error } = await supabaseClient
+                    .from('members')
+                    .insert([formData])
+                    .select();
+
+                console.log('Supabase response:', { data, error });
+
+                if (error) {
+                    throw error;
+                }
+
+                messageDiv.innerHTML = '<p class="success">✅ Member saved successfully! ID: ' + data[0].id + '</p>';
+                this.reset();
+
+            } catch (err) {
+                console.error('Error:', err);
+                messageDiv.innerHTML = '<p class="error">❌ Error: ' + err.message + '</p>';
+            }
+        });
+
+        // Test connection on load
+        window.addEventListener('load', async () => {
+            try {
+                const { data, error } = await supabaseClient.from('members').select('count');
+                if (error) throw error;
+                console.log('✅ Supabase connection test passed');
+            } catch (err) {
+                console.error('❌ Supabase connection failed:', err);
+                document.getElementById('message').innerHTML = '<p class="error">❌ Connection failed: ' + err.message + '</p>';
+            }
+        });
+    </script>
+</body>
+
+</html>

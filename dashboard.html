@@ -194,6 +194,7 @@
 
     <script src="js/auth.js"></script>
     <script src="js/admin-logic.js"></script>
+    <script src="js/dashboard-debug.js"></script>
     <script>
         // ১. সেশন ভেরিফিকেশন (Supabase)
         async function verifySession() {
@@ -306,38 +307,70 @@
 
         function closeModal() { modal.classList.add('hidden'); }
 
-        // ৫. ফর্ম সেভ লজিক (Supabase Integration)
-        // ফর্ম সাবমিট হ্যান্ডলার (Save Changes বাটনটি এটি ট্রিগার করে)
-        document.getElementById('cmsForm').addEventListener('submit', async function (e) {
-            e.preventDefault(); // পেজ রিফ্রেশ বন্ধ করা
+        // ৬. লগআউট
+        document.getElementById('logoutBtn').addEventListener('click', () => CMS.logout());
 
-            const type = document.getElementById('current-type').value; // 'members'
+        // ৭. ফর্ম হ্যান্ডলার সেটআপ করা
+        function initializeFormHandler() {
+            const form = document.getElementById('cmsForm');
+            if (!form) {
+                console.error('cmsForm not found!');
+                return;
+            }
+
+            // Remove existing listeners to prevent duplicates
+            form.removeEventListener('submit', handleFormSubmit);
+            form.addEventListener('submit', handleFormSubmit);
+            console.log('Form handler attached successfully');
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            console.log('Form submitted!');
+
+            if (typeof CMS === 'undefined') {
+                console.error('CMS object not found!');
+                alert('Error: CMS not loaded. Please refresh the page.');
+                return;
+            }
+
+            const type = document.getElementById('current-type').value;
             const id = document.getElementById('edit-id').value;
+
+            console.log('Form data:', { type, id });
 
             // ইনপুট থেকে ডাটা সংগ্রহ করা
             const formData = {};
             if (id) formData.id = id;
 
-            const inputs = this.querySelectorAll('input, textarea, select');
+            const inputs = e.target.querySelectorAll('input, textarea, select');
             inputs.forEach(input => {
                 if (input.name) {
                     formData[input.name] = input.value;
                 }
             });
 
-            console.log("Saving data:", formData); // ডিবাগিং এর জন্য
+            console.log("Saving data:", formData);
 
-            // Supabase এ সেভ করা (CMS.save ফাংশন কল করা)
+            // Supabase এ সেভ করা
             const success = await CMS.save(type, formData);
 
             if (success) {
                 closeModal();
-                showSection(type); // লিস্ট আপডেট করা
+                showSection(type);
             }
-        });
+        }
 
-        // ৬. লগআউট
-        document.getElementById('logoutBtn').addEventListener('click', () => CMS.logout());
+        // Multiple attempts to set up the form handler
+        document.addEventListener('DOMContentLoaded', () => {
+            // Try immediately
+            initializeFormHandler();
+
+            // Try again after a delay (for scripts that load later)
+            setTimeout(initializeFormHandler, 500);
+            setTimeout(initializeFormHandler, 1500);
+            setTimeout(initializeFormHandler, 3000);
+        });
     </script>
 
 </body>
