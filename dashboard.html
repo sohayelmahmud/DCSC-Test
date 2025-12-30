@@ -271,17 +271,36 @@
                 createField('text', 'name', 'Full Name', item ? item.name : '', true);
                 createField('text', 'role', 'Role', item ? item.role : '');
                 createField('number', 'hierarchy', 'Order (1, 2, 3)', item ? item.hierarchy : '99');
-            } else {
-                createField('text', 'title', 'Title', item ? item.title : '', true);
+                createField('text', 'batch', 'Batch (e.g., 2025-26(Current))', item ? item.batch : '2025-26(Current)');
+                createField('text', 'roll', 'Roll Number (Optional)', item ? item.roll : '');
+                createField('text', 'image_url', 'Profile Image URL (Optional)', item ? item.image_url : '');
+            } else if (type === 'blogs') {
+                createField('text', 'title', 'Blog Title', item ? item.title : '', true);
+                createField('textarea', 'content', 'Content', item ? item.content : '', true);
+                createField('text', 'author', 'Author', item ? item.author : '');
                 createField('date', 'date', 'Date', item ? item.date : '');
+                createField('text', 'image_url', 'Blog Image URL (Optional)', item ? item.image_url : '');
+            } else if (type === 'events') {
+                createField('text', 'title', 'Event Title', item ? item.title : '', true);
+                createField('textarea', 'description', 'Description', item ? item.description : '', true);
+                createField('date', 'date', 'Date', item ? item.date : '');
+                createField('text', 'location', 'Location', item ? item.location : '');
+                createField('text', 'image_url', 'Event Image URL (Optional)', item ? item.image_url : '');
             }
         }
 
         function createField(inputType, name, label, value, required = false) {
             const div = document.createElement('div');
             div.className = 'form-group';
-            div.innerHTML = `<label>${label}</label>
-            <input type="${inputType}" name="${name}" value="${value}" class="modal-input" ${required ? 'required' : ''}>`;
+
+            if (inputType === 'textarea') {
+                div.innerHTML = `<label>${label}</label>
+                <textarea name="${name}" class="modal-input" ${required ? 'required' : ''}>${value}</textarea>`;
+            } else {
+                div.innerHTML = `<label>${label}</label>
+                <input type="${inputType}" name="${name}" value="${value}" class="modal-input" ${required ? 'required' : ''}>`;
+            }
+
             formFields.appendChild(div);
         }
 

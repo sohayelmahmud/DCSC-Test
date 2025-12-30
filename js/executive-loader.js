@@ -10,7 +10,25 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
     loadExecutiveMembers();
+    // Set up real-time subscription
+    setupRealtimeSubscription();
 });
+
+// Real-time subscription for members table
+function setupRealtimeSubscription() {
+    const channel = supabaseClient
+        .channel('members-changes')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'members' },
+            (payload) => {
+                console.log('Real-time update received:', payload);
+                // Reload members when any change occurs
+                loadExecutiveMembers();
+            }
+        )
+        .subscribe();
+}
 
 async function loadExecutiveMembers() {
     // Group containers defined in your HTML

@@ -43,6 +43,10 @@ const CMS = {
 
             if (error) throw error;
             alert("Success! Cloud database updated.");
+
+            // Trigger real-time update by calling page-specific reload
+            triggerPageReload(table);
+
             return true;
         } catch (err) {
             console.error("Save error:", err.message);
@@ -64,6 +68,10 @@ const CMS = {
 
             if (error) throw error;
             alert("Record deleted successfully.");
+
+            // Trigger real-time update
+            triggerPageReload(table);
+
             location.reload();
         } catch (err) {
             alert("Delete failed: " + err.message);
@@ -136,6 +144,35 @@ const CMS = {
         window.location.href = 'login.html';
     }
 };
+
+// Trigger page reload based on table type
+function triggerPageReload(table) {
+    // Send message to other tabs/windows about the update
+    if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('dcsc-updates');
+        channel.postMessage({ type: 'update', table: table });
+        channel.close();
+    }
+
+    // Also trigger local reload if functions exist
+    switch (table) {
+        case 'members':
+            if (typeof loadExecutiveMembers === 'function') {
+                loadExecutiveMembers();
+            }
+            break;
+        case 'blogs':
+            if (typeof loadBlogs === 'function') {
+                loadBlogs();
+            }
+            break;
+        case 'events':
+            if (typeof loadEvents === 'function') {
+                loadEvents();
+            }
+            break;
+    }
+}
 
 // --- Execution ---
 document.addEventListener('DOMContentLoaded', () => {
