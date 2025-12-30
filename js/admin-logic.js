@@ -5,7 +5,7 @@
 
 // 1. Supabase Configuration - Variable renamed to clientDB to avoid conflict
 const SB_URL = 'https://kspvcganucjolmrdpudb.supabase.co';
-const SB_KEY = 'sb_publishable_-C1y_mIZSLQbRvLe0ZUxgA_EOBO7DL_';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcHZjZ2FudWNqb2xtcmRwdWRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3NjExNTAsImV4cCI6MjA4MjMzNzE1MH0.ktKtq9y9nX16lSxtqF9H4vdDIWNm1lLzaBosc3RlSyc';
 const clientDB = supabase.createClient(SB_URL, SB_KEY);
 
 const CMS = {
